@@ -30,3 +30,6 @@
 *.exe
 *.out
 *.app
+
+term3_sim_mac*
+build*
