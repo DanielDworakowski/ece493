@@ -229,7 +229,7 @@ ObservationFilter::ObservationFilter(VehicleState state, std::vector<std::vector
         // }
         //
         // Check if the car ahead is the closest in the LoI.
-        if (veh.reldist > 0 && veh.reldist < closestDist) {
+        if (veh.reldist > 0 && veh.reldist < closestDist && vehLane == curlane) {
             closestDist = veh.reldist;
             closestVeh = veh;
         }
