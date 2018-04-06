@@ -8,6 +8,8 @@
 #define TIME_HORIZON (2.)
 #define NUM_POINTS (30)
 #define DT (1. / 50.)
+#define MAX_SPEED_MPS (22.352) // 50 mph.
+#define FOLLOW_DIST (MAX_SPEED_MPS * TIME_HORIZON)
 
 // function a = minimumJerk(x0, dx0, ddx0,xT,dxT,ddxT,T)
 // % Compute a point to point minimum jerk trajectory
@@ -36,6 +38,9 @@
 std::vector<double> minJerkTraj(double x0, double dx0, double ddx0, double xT, double dxT, double ddxT, double T);
 
 inline double laneNumToM(uint32_t laneNum);
+inline uint32_t mToLaneNum(double m);
+inline std::vector<uint32_t> getLoI(uint32_t curlane);
+
 
 class TargetState {
 public:
@@ -78,7 +83,33 @@ public:
     Trajectory(VehicleState state, TargetState tgt, TrajectoryFrenet lastTraj, WayPoints wp);
 };
 
+struct OtherVehicleState {
+    int32_t id = -1;
+    double x = 0;
+    double y = 0;
+    double v_x = 0;
+    double v_y = 0;
+    double s = 0;
+    double d = 0;
+    double reldist = 0;
+    OtherVehicleState(std::vector<double>, VehicleState);
+    OtherVehicleState() {};
+    void print()
+    {
+        std::cout << "(id, s, d) = (" << id << ", " <<  s << ", " << d << ")\n";
+    };
+};
+
+class ObservationFilter {
+public:
+    ObservationFilter(VehicleState state, std::vector<std::vector<double> > others);
+    std::vector<OtherVehicleState > result;
+    OtherVehicleState closestVeh;
+};
+
 class Roller {
+private:
+
 public:
     std::vector<Trajectory> trajs;
     Roller(VehicleState state, TrajectoryFrenet lastTraj, WayPoints wp);

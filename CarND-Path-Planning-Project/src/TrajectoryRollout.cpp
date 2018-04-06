@@ -1,6 +1,6 @@
 #include "TrajectoryRollout.hpp"
 
-#define PRINT(x) std::cout << x << std::endl;
+#define PRINT(x) std::cout << #x << ": " << x << std::endl;
 
 std::vector<double> minJerkTraj(double x0, double dx0, double ddx0, double xT, double dxT, double ddxT, double T)
 {
@@ -26,12 +26,45 @@ std::vector<double> minJerkTraj(double x0, double dx0, double ddx0, double xT, d
     return ret;
 }
 
+
+inline std::vector<uint32_t> getLoI(uint32_t curlane)
+{
+    std::vector<uint32_t> ret;
+    ret.push_back(curlane);
+    // 
+    // Return the lanes that are immediately next to the current.
+    switch(curlane) {
+        case 0:
+            ret.push_back(1);
+            break;
+        case 1:
+            ret.push_back(0);
+            ret.push_back(2);
+            break;
+        case 2:
+            ret.push_back(1);
+            break;
+        default:
+            throw "Invalid current lane";
+    }
+    return ret;
+}
+
 inline double laneNumToM(uint32_t laneNum)
 {
     if (laneNum > 2) {
         throw "Outside of the max lanes!";
     }
     return 2 + laneNum * 4;
+}
+
+inline uint32_t mToLaneNum(double m)
+{
+    if (m < 0 || m > 10) {
+        std::cerr << "Measurement outside of highway!\n";
+    }
+    uint32_t ret = std::round(std::abs(m - 2) / 4);
+    return ret;
 }
 
 double polyval(std::vector<double> a, double x)
@@ -149,14 +182,85 @@ Trajectory::Trajectory(VehicleState state, TargetState tgt, TrajectoryFrenet las
     fr.getXY(x, y, wp, state);
 }
 
+OtherVehicleState::OtherVehicleState(std::vector<double> state, VehicleState egoState) 
+{
+    id = state[0];
+    x = state[1];
+    y = state[2]; 
+    v_x = state[3];
+    v_y = state[4];
+    s = state[5];
+    d = state[6];
+    double maxSpeed = std::min(std::sqrt(std::pow(v_x, 2) + std::pow(v_y, 2)), MAX_SPEED_MPS);
+    reldist =  s + (maxSpeed - egoState.car_speed) * TIME_HORIZON - egoState.car_s;
+}
+
+// [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, car's x velocity in m/s, car's y velocity in m/s, car's s position in frenet coordinates, car's d position in frenet coordinates.
+ObservationFilter::ObservationFilter(VehicleState state, std::vector<std::vector<double> > others)
+{
+    uint32_t curlane = mToLaneNum(state.car_d);
+    auto LoI = getLoI(curlane);
+    double closestDist = 999999; // Should use limits but lazy. 
+
+    for (uint32_t vehidx = 0; vehidx < others.size(); ++vehidx) {
+        OtherVehicleState veh(others[vehidx], state);
+        // 
+        // Assumption checking.
+        if (veh.s > MAX_S) {
+            throw "PAST MAX_S";
+        }
+        // 
+        // Check if car is in LoI.
+        uint32_t vehLane = mToLaneNum(veh.d);
+        if (std::find(LoI.begin(), LoI.end(), vehLane) == LoI.end()) {
+            continue;
+        }
+        // 
+        // Check if they are too far ahead. 
+        double maxSpeed = std::min(std::sqrt(std::pow(veh.v_x, 2) + std::pow(veh.v_y, 2)), MAX_SPEED_MPS);
+        double relDist = MAX_SPEED_MPS * 2;
+        if (std::abs(veh.s + (maxSpeed - state.car_speed) * TIME_HORIZON - state.car_s) > relDist) {
+            continue;
+        }
+        // // 
+        // // Remove anything too far behind.
+        // if (veh.s + maxSpeed * TIME_HORIZON < state.car_s) {
+        //     continue;
+        // }
+        // 
+        // Check if the car ahead is the closest in the LoI. 
+        if (veh.reldist < closestDist) {
+            closestDist = veh.reldist;
+            closestVeh = veh;
+        }
+        result.push_back(veh);
+    }
+}
+
 Roller::Roller(VehicleState state, TrajectoryFrenet lastTraj, WayPoints wp)
 {
     // double tgtspeed = MPH2MPS(45);
-    double tgtspeed = MPH2MPS(400);
-    double vf = std::min(tgtspeed, state.car_speed + 0.2 * (tgtspeed - state.car_speed));
-    TargetState tgt(0, vf);
-    trajs.push_back(Trajectory(state, tgt, lastTraj, wp));
+    double tgtspeed = MPH2MPS(45);
+    double vf_controller = std::min(tgtspeed, state.car_speed + 0.2 * (tgtspeed - state.car_speed));
+    double v_tgt = vf_controller;
+    uint32_t laneIdx = 1;
+    uint32_t curlane = mToLaneNum(state.car_d);
+    auto LoI = getLoI(curlane);
+
+    // ObservationFilter filtered(state, state.sensor_fusion);
+    // if (filtered.closestVeh.id != -1) {
+    //     filtered.closestVeh.print();
+    //     v_tgt = state.car_speed + 0.2 * (filtered.closestVeh.reldist - FOLLOW_DIST);
+    // }
+    PRINT(v_tgt)
+    TargetState tgt(laneIdx, v_tgt);
+
+    // for (uint32_t lnIdx = 0; lnIdx < LoI.size(); ++lnIdx) {
+    //     TargetState tgt(LoI[lnIdx], vf_controller);
+    //     trajs.push_back(Trajectory(state, tgt, lastTraj, wp));
+    // }
 }
+
 
 void Roller::bestTraj(std::vector<double> & x, std::vector<double> & y, TrajectoryFrenet & tf)
 {
