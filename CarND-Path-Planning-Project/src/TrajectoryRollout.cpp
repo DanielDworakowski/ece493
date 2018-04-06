@@ -31,7 +31,7 @@ inline std::vector<uint32_t> getLoI(uint32_t curlane)
 {
     std::vector<uint32_t> ret;
     ret.push_back(curlane);
-    // 
+    //
     // Return the lanes that are immediately next to the current.
     switch(curlane) {
         case 0:
@@ -60,9 +60,9 @@ inline double laneNumToM(uint32_t laneNum)
 
 inline uint32_t mToLaneNum(double m)
 {
-    if (m < 0 || m > 10) {
-        std::cerr << "Measurement outside of highway!\n";
-    }
+    // if (m < 0 || m > 10) {
+    //     std::cerr << "Measurement outside of highway!\n";
+    // }
     uint32_t ret = std::round(std::abs(m - 2) / 4);
     return ret;
 }
@@ -147,7 +147,7 @@ void TrajectoryFrenet::getXY(std::vector<double> & x, std::vector<double> & y, W
         std::vector<double> xy = fr[idx].toXY(wp);
         x.push_back(xy[0]);
         y.push_back(xy[1]);
-        // 
+        //
         // Debugging.
         // auto sd = wp.getFrenet(xy[0], xy[1], state.car_yaw);
         // std::cout << "(s,d,idx): (" << sd[0] << ", " << sd[1] << ", " << idx << ")\n";
@@ -182,11 +182,11 @@ Trajectory::Trajectory(VehicleState state, TargetState tgt, TrajectoryFrenet las
     fr.getXY(x, y, wp, state);
 }
 
-OtherVehicleState::OtherVehicleState(std::vector<double> state, VehicleState egoState) 
+OtherVehicleState::OtherVehicleState(std::vector<double> state, VehicleState egoState)
 {
     id = state[0];
     x = state[1];
-    y = state[2]; 
+    y = state[2];
     v_x = state[3];
     v_y = state[4];
     s = state[5];
@@ -200,36 +200,36 @@ ObservationFilter::ObservationFilter(VehicleState state, std::vector<std::vector
 {
     uint32_t curlane = mToLaneNum(state.car_d);
     auto LoI = getLoI(curlane);
-    double closestDist = 999999; // Should use limits but lazy. 
+    double closestDist = 999999; // Should use limits but lazy.
 
     for (uint32_t vehidx = 0; vehidx < others.size(); ++vehidx) {
         OtherVehicleState veh(others[vehidx], state);
-        // 
+        //
         // Assumption checking.
         if (veh.s > MAX_S) {
             throw "PAST MAX_S";
         }
-        // 
+        //
         // Check if car is in LoI.
         uint32_t vehLane = mToLaneNum(veh.d);
         if (std::find(LoI.begin(), LoI.end(), vehLane) == LoI.end()) {
             continue;
         }
-        // 
-        // Check if they are too far ahead. 
+        //
+        // Check if they are too far ahead.
         double maxSpeed = std::min(std::sqrt(std::pow(veh.v_x, 2) + std::pow(veh.v_y, 2)), MAX_SPEED_MPS);
         double relDist = MAX_SPEED_MPS * 2;
         if (std::abs(veh.s + (maxSpeed - state.car_speed) * TIME_HORIZON - state.car_s) > relDist) {
             continue;
         }
-        // // 
+        // //
         // // Remove anything too far behind.
         // if (veh.s + maxSpeed * TIME_HORIZON < state.car_s) {
         //     continue;
         // }
-        // 
-        // Check if the car ahead is the closest in the LoI. 
-        if (veh.reldist < closestDist) {
+        //
+        // Check if the car ahead is the closest in the LoI.
+        if (veh.reldist > 0 && veh.reldist < closestDist) {
             closestDist = veh.reldist;
             closestVeh = veh;
         }
@@ -247,13 +247,15 @@ Roller::Roller(VehicleState state, TrajectoryFrenet lastTraj, WayPoints wp)
     uint32_t curlane = mToLaneNum(state.car_d);
     auto LoI = getLoI(curlane);
 
-    // ObservationFilter filtered(state, state.sensor_fusion);
-    // if (filtered.closestVeh.id != -1) {
-    //     filtered.closestVeh.print();
-    //     v_tgt = state.car_speed + 0.2 * (filtered.closestVeh.reldist - FOLLOW_DIST);
-    // }
+    ObservationFilter filtered(state, state.sensor_fusion);
+    if (filtered.closestVeh.id != -1) {
+        filtered.closestVeh.print();
+        PRINT(filtered.closestVeh.reldist)
+        v_tgt = state.car_speed + 0.2 * (filtered.closestVeh.reldist - FOLLOW_DIST);
+    }
     PRINT(v_tgt)
     TargetState tgt(laneIdx, v_tgt);
+    trajs.push_back(Trajectory(state, tgt, lastTraj, wp));
 
     // for (uint32_t lnIdx = 0; lnIdx < LoI.size(); ++lnIdx) {
     //     TargetState tgt(LoI[lnIdx], vf_controller);
