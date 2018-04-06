@@ -123,7 +123,7 @@ Trajectory::Trajectory(VehicleState state, TargetState tgt, TrajectoryFrenet las
     double start_d0 = basePoint.d;
     double start_d0_d = basePoint.d_d;
     double start_d0_dd = basePoint.d_dd;
-    double end_s0 = basePoint.s_dd + tgt.v_f * TIME_HORIZON; // Integrate final position.
+    double end_s0 = basePoint.s + tgt.v_f * TIME_HORIZON; // Integrate final position.
     double end_s0_d = tgt.v_f;
     double end_s0_dd = 0; //Always 0.
     double end_d0 = laneNumToM(tgt.lane);
