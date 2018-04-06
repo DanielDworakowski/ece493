@@ -151,7 +151,8 @@ Trajectory::Trajectory(VehicleState state, TargetState tgt, TrajectoryFrenet las
 
 Roller::Roller(VehicleState state, TrajectoryFrenet lastTraj, WayPoints wp)
 {
-    double tgtspeed = MPH2MPS(45);
+    // double tgtspeed = MPH2MPS(45);
+    double tgtspeed = MPH2MPS(400);
     double vf = std::min(tgtspeed, state.car_speed + 0.2 * (tgtspeed - state.car_speed));
     TargetState tgt(0, vf);
     trajs.push_back(Trajectory(state, tgt, lastTraj, wp));

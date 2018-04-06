@@ -15,6 +15,8 @@
 
 using json = nlohmann::json;
 
+#define NUM_MAP_PTS (7000)
+#define MAX_S (6945.554)
 
 // For converting back and forth between radians and degrees.
 constexpr double pi();

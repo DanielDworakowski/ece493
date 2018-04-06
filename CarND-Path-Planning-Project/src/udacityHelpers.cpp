@@ -31,7 +31,7 @@ WayPoints::WayPoints()
     temp_dx.push_back(d_x);
     temp_dy.push_back(d_y);
   }
-  double max_s = 6945.554;
+  double max_s = MAX_S;
   // 
   // Wrap around back to the beginning for splining.
   temp_x.push_back(temp_x[0]);
@@ -46,7 +46,7 @@ WayPoints::WayPoints()
   s_dx.set_points(temp_s, temp_dx);
   s_dy.set_points(temp_s, temp_dy);
   double cur_s = 0;
-  uint32_t npts = 5000;
+  uint32_t npts = NUM_MAP_PTS;
   double ds = max_s / npts;
   for (uint32_t idx = 0; idx < npts; ++idx) {
     w_s.push_back(cur_s);
@@ -62,7 +62,10 @@ WayPoints::WayPoints()
 std::vector<double> WayPoints::getXY(double s, double d)
 {
   int prev_wp = -1;
-
+  // 
+  // Wrap s back around.
+  double wraps = std::floor(s / MAX_S);
+  s -= wraps * MAX_S;
   while(s > w_s[prev_wp+1] && (prev_wp < (int)(w_s.size()-1) )) {
     prev_wp++;
   }
