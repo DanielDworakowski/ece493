@@ -7,6 +7,7 @@
 
 #define TIME_HORIZON (2.)
 #define NUM_POINTS (30)
+#define DT (1. / 50.)
 
 // function a = minimumJerk(x0, dx0, ddx0,xT,dxT,ddxT,T)
 // % Compute a point to point minimum jerk trajectory
@@ -64,8 +65,9 @@ public:
     TrajectoryFrenet() {};
     TrajectoryFrenet(double s, double d);
     TrajectoryFrenet(std::vector<double> traj_s, std::vector<double> traj_d, double dt, uint32_t n);
-    void getXY(std::vector<double> & x, std::vector<double> & y, WayPoints wp);
+    void getXY(std::vector<double> & x, std::vector<double> & y, WayPoints wp, VehicleState state);
     uint32_t size() {return fr.size();};
+    void print();
 };
 
 class Trajectory {

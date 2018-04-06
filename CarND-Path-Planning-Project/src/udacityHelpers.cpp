@@ -1,10 +1,16 @@
 #include "udacityHelpers.hpp"
 
+#define DEBUG_LINE std::cout << __LINE__ << std::endl;
 
 WayPoints::WayPoints()
 {
   std::string map_file_ = "../data/highway_map.csv";
   std::ifstream in_map_(map_file_.c_str(), std::ifstream::in);
+  std::vector<double> temp_x;
+  std::vector<double> temp_y;
+  std::vector<double> temp_s;
+  std::vector<double> temp_dx;
+  std::vector<double> temp_dy;
 
   std::string line;
   while (getline(in_map_, line)) {
@@ -19,11 +25,36 @@ WayPoints::WayPoints()
     iss >> s;
     iss >> d_x;
     iss >> d_y;
-    w_x.push_back(x);
-    w_y.push_back(y);
-    w_s.push_back(s);
-    w_dx.push_back(d_x);
-    w_dy.push_back(d_y);
+    temp_x.push_back(x);
+    temp_y.push_back(y);
+    temp_s.push_back(s);
+    temp_dx.push_back(d_x);
+    temp_dy.push_back(d_y);
+  }
+  double max_s = 6945.554;
+  // 
+  // Wrap around back to the beginning for splining.
+  temp_x.push_back(temp_x[0]);
+  temp_y.push_back(temp_y[0]);
+  temp_s.push_back(max_s);
+  temp_dx.push_back(temp_dx[0]);
+  temp_dy.push_back(temp_dy[0]);
+  // 
+  // Create X points out of what we had.
+  s_x.set_points(temp_s, temp_x);
+  s_y.set_points(temp_s, temp_y);
+  s_dx.set_points(temp_s, temp_dx);
+  s_dy.set_points(temp_s, temp_dy);
+  double cur_s = 0;
+  uint32_t npts = 5000;
+  double ds = max_s / npts;
+  for (uint32_t idx = 0; idx < npts; ++idx) {
+    w_s.push_back(cur_s);
+    w_x.push_back(s_x(cur_s));
+    w_y.push_back(s_y(cur_s));
+    w_dx.push_back(s_dx(cur_s));
+    w_dy.push_back(s_dy(cur_s));
+    cur_s += ds;
   }
 }
 
@@ -51,6 +82,48 @@ std::vector<double> WayPoints::getXY(double s, double d)
   double y = seg_y + d*sin(perp_heading);
 
   return {x,y};
+}
+
+std::vector<double> WayPoints::getFrenet(double x, double y, double theta)
+{
+  int next_wp = NextWaypoint(x,y, theta, w_x,w_y);
+
+  int prev_wp;
+  prev_wp = next_wp-1;
+  if(next_wp == 0) {
+    prev_wp  = w_x.size()-1;
+  }
+
+  double n_x = w_x[next_wp]-w_x[prev_wp];
+  double n_y = w_y[next_wp]-w_y[prev_wp];
+  double x_x = x - w_x[prev_wp];
+  double x_y = y - w_y[prev_wp];
+
+  // find the projection of x onto n
+  double proj_norm = (x_x*n_x+x_y*n_y)/(n_x*n_x+n_y*n_y);
+  double proj_x = proj_norm*n_x;
+  double proj_y = proj_norm*n_y;
+
+  double frenet_d = distance(x_x,x_y,proj_x,proj_y);
+
+  //see if d value is positive or negative by comparing it to a center point
+
+  double center_x = 1000-w_x[prev_wp];
+  double center_y = 2000-w_y[prev_wp];
+  double centerToPos = distance(center_x,center_y,x_x,x_y);
+  double centerToRef = distance(center_x,center_y,proj_x,proj_y);
+
+  if(centerToPos <= centerToRef) {
+    frenet_d *= -1;
+  }
+  // calculate s value
+  double frenet_s = 0;
+  for(int i = 0; i < prev_wp; i++) {
+    frenet_s += distance(w_x[i],w_y[i],w_x[i+1],w_y[i+1]);
+  }
+  frenet_s += distance(0,0,proj_x,proj_y);
+  return {frenet_s,frenet_d};
+
 }
 
 VehicleState::VehicleState(json j, std::vector<double> px, std::vector<double> py, std::vector<std::vector<double> > sf)

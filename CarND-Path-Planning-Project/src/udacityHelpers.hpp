@@ -11,6 +11,7 @@
 #include "Eigen-3.3/Eigen/Core"
 #include "Eigen-3.3/Eigen/QR"
 #include "json.hpp"
+#include "spline.h"
 
 using json = nlohmann::json;
 
@@ -45,8 +46,13 @@ public:
   std::vector<double> w_s;
   std::vector<double> w_dx;
   std::vector<double> w_dy;
+  tk::spline s_x;
+  tk::spline s_y;
+  tk::spline s_dx;
+  tk::spline s_dy;
   WayPoints();
   std::vector<double> getXY(double s, double d);
+  std::vector<double> getFrenet(double x, double y, double theta);
 };
 
 class VehicleState {

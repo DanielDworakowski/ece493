@@ -1,5 +1,7 @@
 #include "TrajectoryRollout.hpp"
 
+#define PRINT(x) std::cout << x << std::endl;
+
 std::vector<double> minJerkTraj(double x0, double dx0, double ddx0, double xT, double dxT, double ddxT, double T)
 {
     double T2 = std::pow(T,2);
@@ -21,7 +23,6 @@ std::vector<double> minJerkTraj(double x0, double dx0, double ddx0, double xT, d
     Eigen::MatrixXd inv = b.inverse();
     coef.block(3,0,3,1) = inv * c;
     std::vector<double> ret(coef.data(), coef.data() + coef.rows() * coef.cols());
-    std::cout<< "coef: " << coef << std::endl;
     return ret;
 }
 
@@ -99,22 +100,30 @@ TrajectoryFrenet::TrajectoryFrenet(double s, double d)
     fr.push_back(TrajPointFrenet(s,d));
 }
 
+void TrajectoryFrenet::print()
+{
+    for (uint32_t idx = 0; idx < fr.size(); ++idx) {
+        auto pt = fr[idx];
+        std::cout << "(s,d,idx): (" << pt.s << ", " << pt.d << ", " << idx << ")\n";
+    }
+}
 
-void TrajectoryFrenet::getXY(std::vector<double> & x, std::vector<double> & y, WayPoints wp)
+void TrajectoryFrenet::getXY(std::vector<double> & x, std::vector<double> & y, WayPoints wp, VehicleState state)
 {
     for (uint32_t idx = 0; idx < fr.size(); ++idx) {
         std::vector<double> xy = fr[idx].toXY(wp);
         x.push_back(xy[0]);
         y.push_back(xy[1]);
+        // 
+        // Debugging.
+        // auto sd = wp.getFrenet(xy[0], xy[1], state.car_yaw);
+        // std::cout << "(s,d,idx): (" << sd[0] << ", " << sd[1] << ", " << idx << ")\n";
     }
 }
 
 Trajectory::Trajectory(VehicleState state, TargetState tgt, TrajectoryFrenet lastTraj, WayPoints wp)
 {
     uint32_t nUnused = state.previous_path_x.size();
-    std::cout <<"here"<<std::endl;
-    std::cout << lastTraj.size() << std::endl;
-    std::cout << nUnused << std::endl;
     TrajPointFrenet basePoint = lastTraj.fr[lastTraj.size() - nUnused - 1];
     // auto minJerkTraj(double x0, double dx0, double ddx0, double xT, double dxT, double ddxT, double T)
     double start_s0 = basePoint.s;
@@ -136,17 +145,15 @@ Trajectory::Trajectory(VehicleState state, TargetState tgt, TrajectoryFrenet las
     uint32_t n = NUM_POINTS;
     //
     // Roll out the trajectory.
-    fr = TrajectoryFrenet(s_coef, d_coef, TIME_HORIZON / n, n);
-    fr.getXY(x, y, wp);
+    fr = TrajectoryFrenet(s_coef, d_coef, DT, n);
+    fr.getXY(x, y, wp, state);
 }
 
 Roller::Roller(VehicleState state, TrajectoryFrenet lastTraj, WayPoints wp)
 {
-    double tgtspeed = MPH2MPS(50);
+    double tgtspeed = MPH2MPS(45);
     double vf = std::min(tgtspeed, state.car_speed + 0.2 * (tgtspeed - state.car_speed));
     TargetState tgt(0, vf);
-    std::cout << "vf " << vf << std::endl;
-    tgt.lane = 0;
     trajs.push_back(Trajectory(state, tgt, lastTraj, wp));
 }
 

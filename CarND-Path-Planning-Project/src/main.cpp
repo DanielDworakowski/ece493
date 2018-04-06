@@ -21,7 +21,6 @@ int main()
   // Waypoint map to read from
   std::string map_file_ = "../data/highway_map.csv";
   // The max s value before wrapping around the track back to 0
-  double max_s = 6945.554;
   WayPoints wp;
   TrajectoryFrenet prev_tf;
   bool init = false;
@@ -80,7 +79,7 @@ int main()
           // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
-          std::cout << "msg: " << msgJson << std::endl;
+          // std::cout << "msg: " << msgJson << std::endl;
           auto msg = "42[\"control\","+ msgJson.dump()+"]";
 
           //this_thread::sleep_for(chrono::milliseconds(1000));
