@@ -56,7 +56,7 @@ int main()
           std::vector<double> next_x_vals;
           std::vector<double> next_y_vals;
           Roller roll(state, prev_tf, lastTargetLane, wp);
-          roll.bestTraj(next_x_vals, next_y_vals, prev_tf);
+          lastTargetLane = roll.bestTraj(next_x_vals, next_y_vals, prev_tf);
 
 
           // int startx = state.car_x;

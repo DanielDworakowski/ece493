@@ -55,7 +55,7 @@ inline std::vector<double> minJerkTraj(double x0, double dx0, double ddx0, doubl
 
 inline double laneNumToM(uint32_t laneNum)
 {
-    if (laneNum > 2) { 
+    if (laneNum > 2) {
         throw "Outside of the max lanes!";
     }
     return 2 + laneNum * 4;
@@ -119,5 +119,32 @@ inline std::vector<uint32_t> getLoI(uint32_t curlane)
     }
     return ret;
 }
+
+// inline std::vector<uint32_t> getLoI(uint32_t curlane)
+// {
+
+//     std::vector<uint32_t> ret;
+//     ret.push_back(0);
+//     ret.push_back(1);
+//     ret.push_back(2);
+//     // ret.push_back(curlane);
+//     // //
+//     // // Return the lanes that are immediately next to the current.
+//     // switch(curlane) {
+//     //     case 0:
+//     //         ret.push_back(1);
+//     //         break;
+//     //     case 1:
+//     //         ret.push_back(0);
+//     //         ret.push_back(2);
+//     //         break;
+//     //     case 2:
+//     //         ret.push_back(1);
+//     //         break;
+//     //     default:
+//     //         throw "Invalid current lane";
+//     // }
+//     return ret;
+// }
 
 #endif

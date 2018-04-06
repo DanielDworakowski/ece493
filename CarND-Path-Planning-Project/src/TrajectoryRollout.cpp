@@ -100,7 +100,8 @@ OtherVehicleState::OtherVehicleState(std::vector<double> state, VehicleState ego
     s = state[5];
     d = state[6];
     double maxSpeed = std::min(std::sqrt(std::pow(v_x, 2) + std::pow(v_y, 2)), MAX_SPEED_MPS);
-    reldist =  s + (maxSpeed - egoState.car_speed) * TIME_HORIZON - egoState.car_s;
+    // reldist =  s + (maxSpeed - egoState.car_speed) * TIME_HORIZON - egoState.car_s;
+    reldist =  s - egoState.car_s;
 }
 
 // [car's unique ID, car's x position in map coordinates, car's y position in map coordinates, car's x velocity in m/s, car's y velocity in m/s, car's s position in frenet coordinates, car's d position in frenet coordinates.
@@ -127,7 +128,10 @@ ObservationFilter::ObservationFilter(VehicleState state, std::vector<std::vector
         // Check if they are too far ahead.
         double maxSpeed = std::min(std::sqrt(std::pow(veh.v_x, 2) + std::pow(veh.v_y, 2)), MAX_SPEED_MPS);
         double relDist = MAX_SPEED_MPS * 2;
-        if (std::abs(veh.s + (maxSpeed - state.car_speed) * TIME_HORIZON - state.car_s) > relDist) {
+        // if (std::abs(veh.s + (maxSpeed - state.car_speed) * TIME_HORIZON - state.car_s) > relDist) {
+        //     continue;
+        // }
+        if (std::abs(veh.s - state.car_s) > relDist) {
             continue;
         }
         // //
@@ -137,7 +141,7 @@ ObservationFilter::ObservationFilter(VehicleState state, std::vector<std::vector
         // }
         //
         // Check if the car ahead is the closest in the LoI.
-        if (veh.reldist > 0 && veh.reldist < closestDist[vehLane]) {
+        if (veh.reldist > -10 && veh.reldist < closestDist[vehLane]) {
             closestDist[vehLane] = veh.reldist;
             closestVeh[vehLane] = veh;
         }
@@ -159,16 +163,16 @@ Roller::Roller(VehicleState state, TrajectoryFrenet lastTraj, uint32_t lastTarge
 void Roller::fastDriver(VehicleState state, TrajectoryFrenet lastTraj, uint32_t lastTargetLane, WayPoints wp)
 {
     double tgtspeed = MPH2MPS(45);
+    double unrestricted = MPH2MPS(100);
     //
     // Speed with no obstruction.
     double vf_controller = std::min(tgtspeed, state.car_speed + 0.2 * (tgtspeed - state.car_speed));
     double v_tgt = vf_controller;
-    double maxSpeed = -1;
+    double maxSpeed = -1000;
     uint32_t bestLaneIdx = 100;
-    uint32_t laneIdx = 1;
     uint32_t curlane = mToLaneNum(state.car_d);
     ObservationFilter filtered(state, state.sensor_fusion);
-    std::vector<double> tgtSpeedLane(filtered.closestVeh.size(), -1);
+    std::vector<double> tgtSpeedLane(filtered.closestVeh.size(), -100);
     //
     // Iterate over all LoI.
     for (uint32_t LoIIndex = 0; LoIIndex < filtered.LoI.size(); ++LoIIndex) {
@@ -176,24 +180,34 @@ void Roller::fastDriver(VehicleState state, TrajectoryFrenet lastTraj, uint32_t 
         // Check the speed of all LoI.
         auto loiidx = filtered.LoI[LoIIndex];
         auto curVeh = filtered.closestVeh[loiidx];
-        tgtSpeedLane[loiidx] = vf_controller;
+        tgtSpeedLane[loiidx] = unrestricted;
         if (filtered.closestVeh[loiidx].id != -1) {
+            PRINT(loiidx)
             filtered.closestVeh[loiidx].print();
             PRINT(filtered.closestVeh[loiidx].reldist)
             tgtSpeedLane[loiidx] = state.car_speed + 0.2 * (filtered.closestVeh[loiidx].reldist - FOLLOW_DIST);
+            if (filtered.closestVeh[loiidx].reldist < 5) {
+                tgtSpeedLane[loiidx] = -1;
+            }
         }
+        //
+        // Is this lane faster?
         if (tgtSpeedLane[loiidx] > maxSpeed) {
             maxSpeed = tgtSpeedLane[loiidx];
             bestLaneIdx = loiidx;
         }
     }
-    std::cout << "(maxspeed, lastLaneIdx, lastLaneSpeed) = (" << maxSpeed << ", " << lastTargetLane << ", " << tgtSpeedLane[lastTargetLane] << ")\n";
+    std::cout << "(maxspeed, bestidx, lastLaneIdx, lastLaneSpeed) = (" << maxSpeed << ", " <<  bestLaneIdx << ", " << lastTargetLane << ", " << tgtSpeedLane[lastTargetLane] << ")\n";
     //
     // Check if it is even worth switching lanes.
     if (maxSpeed - tgtSpeedLane[lastTargetLane] < SWITCH_LANE_SPEEDUP_MIN) {
         bestLaneIdx = lastTargetLane;
     }
-    TargetState tgt(bestLaneIdx, tgtSpeedLane[bestLaneIdx]);
+    else {
+        std::cout << "Worth switching lanes: " << maxSpeed - tgtSpeedLane[lastTargetLane] << std::endl;
+    }
+    auto speed = std::min(tgtSpeedLane[bestLaneIdx], v_tgt);
+    TargetState tgt(bestLaneIdx, speed);
     targetLane = bestLaneIdx;
     trajs.push_back(Trajectory(state, tgt, lastTraj, wp));
 }
