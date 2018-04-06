@@ -24,8 +24,9 @@ int main()
   WayPoints wp;
   TrajectoryFrenet prev_tf;
   bool init = false;
+  uint32_t lastTargetLane = DEFAULT_TARGET_LANE;
 
-  h.onMessage([&wp, &prev_tf, &init](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
+  h.onMessage([&wp, &prev_tf, &init, &lastTargetLane](uWS::WebSocket<uWS::SERVER> ws, char *data, size_t length,
                      uWS::OpCode opCode) {
     // "42" at the start of the message means there's a websocket message event.
     // The 4 signifies a websocket message
@@ -54,7 +55,7 @@ int main()
 
           std::vector<double> next_x_vals;
           std::vector<double> next_y_vals;
-          Roller roll(state, prev_tf, wp);
+          Roller roll(state, prev_tf, lastTargetLane, wp);
           roll.bestTraj(next_x_vals, next_y_vals, prev_tf);
 
 

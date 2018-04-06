@@ -11,6 +11,8 @@
 #define DT (1. / 50.)
 #define MAX_SPEED_MPS (22.352) // 50 mph.
 #define FOLLOW_DIST (MAX_SPEED_MPS * TIME_HORIZON)
+#define DEFAULT_TARGET_LANE (1)
+#define SWITCH_LANE_SPEEDUP_MIN (3.)
 
 class TargetState {
 public:
@@ -73,17 +75,20 @@ struct OtherVehicleState {
 class ObservationFilter {
 public:
     ObservationFilter(VehicleState state, std::vector<std::vector<double> > others);
-    std::vector<OtherVehicleState > result;
-    OtherVehicleState closestVeh;
+    std::vector<OtherVehicleState> result;
+    std::vector<uint32_t> LoI;
+    std::vector<OtherVehicleState> closestVeh = std::vector<OtherVehicleState>(3);
 };
 
 class Roller {
 private:
-
+    uint32_t targetLane = DEFAULT_TARGET_LANE;
+    void singleLaneFollower(VehicleState state, TrajectoryFrenet lastTraj, uint32_t lastTargetLane, WayPoints wp);
+    void fastDriver(VehicleState state, TrajectoryFrenet lastTraj, uint32_t lastTargetLane, WayPoints wp);
 public:
     std::vector<Trajectory> trajs;
-    Roller(VehicleState state, TrajectoryFrenet lastTraj, WayPoints wp);
-    void bestTraj(std::vector<double> & x, std::vector<double> & y, TrajectoryFrenet & tf);
+    Roller(VehicleState state, TrajectoryFrenet lastTraj, uint32_t lastTargetLane, WayPoints wp);
+    uint32_t bestTraj(std::vector<double> & x, std::vector<double> & y, TrajectoryFrenet & tf);
 
 };
 
