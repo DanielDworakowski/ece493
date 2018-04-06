@@ -254,7 +254,7 @@ Roller::Roller(VehicleState state, TrajectoryFrenet lastTraj, WayPoints wp)
         v_tgt = state.car_speed + 0.2 * (filtered.closestVeh.reldist - FOLLOW_DIST);
     }
     PRINT(v_tgt)
-    v_tgt = std::max(0, v_tgt);
+    v_tgt = std::max(0., v_tgt);
     TargetState tgt(laneIdx, v_tgt);
     trajs.push_back(Trajectory(state, tgt, lastTraj, wp));
 
