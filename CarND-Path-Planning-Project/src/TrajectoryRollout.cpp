@@ -22,8 +22,8 @@ bool TrajPointFrenet::checkConstraints()
 {
     //
     // SHould be inverted?
-    return !(v_t >= MPH2MPS(V_MAX) || a_t >= 9.9 || j_t >= 9.9);
-    // return !(a_t >= 9.9);
+    // return !(v_t >= MPH2MPS(V_MAX) || a_t >= 9.9 || j_t >= 9.9);
+    return !(a_t >= 9.9);
 }
 
 TrajPointFrenet::TrajPointFrenet(double s, double d)
@@ -48,7 +48,7 @@ TrajectoryFrenet::TrajectoryFrenet(std::vector<double> traj_s, std::vector<doubl
     for (uint32_t idx = 0; idx < n; ++idx) {
         auto pt = TrajPointFrenet(traj_s, traj_d, x);
         fr.push_back(pt);
-        // valid &= pt.checkConstraints();
+        valid &= pt.checkConstraints();
         x += dx;
     }
     getXY_local(wp);
@@ -83,9 +83,9 @@ void TrajectoryFrenet::getXY_local(WayPoints wp)
     double v_x = 0;
     double v_y = 0;
     double v_t = 0;
-    // double a_x = 0;
-    // double a_y = 0;
-    // double a_t = 0;
+    double a_x = 0;
+    double a_y = 0;
+    double a_t = 0;
     // double j_x = 0;
     // double j_y = 0;
     // double j_t = 0;
@@ -98,15 +98,19 @@ void TrajectoryFrenet::getXY_local(WayPoints wp)
         v_x = (-2*x[i-3]+9*x[i-2]-18*x[i-1]+11*x[i]) / (6*dx);
         v_y = (-2*y[i-3]+9*y[i-2]-18*y[i-1]+11*y[i]) / (6*dx);
         v_t = norm(v_x, v_y);
-        if (i == 3) {
-            PRINT(MPS2MPH(v_x))
-            PRINT(MPS2MPH(v_y))
-            PRINT(MPS2MPH(v_t))
-        }
         // a_x = (11*x[i-1]-20*x[i]+6*x[i+1]+4*x[i+2]-x[i+3]) / (12 * std::pow(dx, 2));
         // a_y = (11*y[i-1]-20*y[i]+6*y[i+1]+4*y[i+2]-y[i+3]) / (12 * std::pow(dx, 2));
         // a_x = (10*x[i-1]-15*x[i]-4*x[i+1]+14*x[i+2]-6*x[i+3]+1*x[i+4]) / (12 * std::pow(dx, 2));
         // a_y = (10*y[i-1]-15*y[i]-4*y[i+1]+14*y[i+2]-6*y[i+3]+1*y[i+4]) / (12 * std::pow(dx, 2));
+        // a_x = (-1 * x[i-3] + 4 * x[i-2] -5 * x[i-1]+2*x[i]) / (std::pow(dx, 2));
+        // a_y = (-1 * y[i-3] + 4 * y[i-2] -5 * y[i-1]+2*y[i]) / (std::pow(dx, 2));
+        // a_t = norm(a_x, a_y);
+        // if (i == 3) {
+        //     PRINT(MPS2MPH(a_x))
+        //     PRINT(MPS2MPH(a_y))
+        //     PRINT(MPS2MPH(a_t))
+        // }
+
         // j_x = (-x[i] + x[i + 3] + 3 * x[i + 1] - 3 * x[i + 2]) / std::pow(dx, 3);
         // j_y = (-y[i] + y[i + 3] + 3 * y[i + 1] - 3 * y[i + 2]) / std::pow(dx, 3);
         // j_t = norm(j_x, j_y);
@@ -126,6 +130,7 @@ Trajectory::Trajectory(VehicleState state, TargetState tgt, TrajectoryFrenet las
 {
     uint32_t nUnused = state.previous_path_x.size();
     TrajPointFrenet basePoint = lastTraj.fr[lastTraj.size() - nUnused - 1];
+    double time = TIME_HORIZON;
     // auto minJerkTraj(double x0, double dx0, double ddx0, double xT, double dxT, double ddxT, double T)
     double start_s0 = basePoint.s;
     double start_s0_d = basePoint.s_d;
@@ -133,7 +138,7 @@ Trajectory::Trajectory(VehicleState state, TargetState tgt, TrajectoryFrenet las
     double start_d0 = basePoint.d;
     double start_d0_d = basePoint.d_d;
     double start_d0_dd = basePoint.d_dd;
-    double end_s0 = basePoint.s + tgt.v_f * TIME_HORIZON; // Integrate final position.
+    double end_s0 = basePoint.s + tgt.v_f * time; // Integrate final position.
     double end_s0_d = tgt.v_f;
     double end_s0_dd = 0; //Always 0.
     double end_d0 = laneNumToM(tgt.lane);
@@ -141,8 +146,8 @@ Trajectory::Trajectory(VehicleState state, TargetState tgt, TrajectoryFrenet las
     double end_d0_dd = 0; //Always 0.
     //
     // Get polynomials.
-    std::vector<double> s_coef = minJerkTraj(start_s0, start_s0_d, start_s0_dd, end_s0, end_s0_d, end_s0_dd, TIME_HORIZON);
-    std::vector<double> d_coef = minJerkTraj(start_d0, start_d0_d, start_d0_dd, end_d0, end_d0_d, end_d0_dd, TIME_HORIZON);
+    std::vector<double> s_coef = minJerkTraj(start_s0, start_s0_d, start_s0_dd, end_s0, end_s0_d, end_s0_dd, time);
+    std::vector<double> d_coef = minJerkTraj(start_d0, start_d0_d, start_d0_dd, end_d0, end_d0_d, end_d0_dd, time);
     uint32_t n = NUM_POINTS;
     //
     // Roll out the trajectory.
@@ -181,9 +186,9 @@ ObservationFilter::ObservationFilter(VehicleState state, std::vector<std::vector
         //
         // Check if car is in LoI.
         uint32_t vehLane = mToLaneNum(veh.d);
-        if (std::find(LoI.begin(), LoI.end(), vehLane) == LoI.end()) {
-            continue;
-        }
+        // if (std::find(LoI.begin(), LoI.end(), vehLane) == LoI.end()) {
+        //     continue;
+        // }
         //
         // Check if they are too far ahead.
         double maxSpeed = std::min(std::sqrt(std::pow(veh.v_x, 2) + std::pow(veh.v_y, 2)), MAX_SPEED_MPS);
@@ -260,22 +265,22 @@ void Roller::fastDriver(VehicleState state, TrajectoryFrenet lastTraj, uint32_t 
             bestLaneIdx = lnidx;
         }
     }
-    // std::cout << "(maxspeed, bestidx, lastLaneIdx, lastLaneSpeed) = (" << maxSpeed << ", " <<  bestLaneIdx << ", " << lastTargetLane << ", " << tgtSpeedLane[lastTargetLane] << ")\n";
-    //
-    // Check if it is even worth switching lanes.
-    if (maxSpeed - tgtSpeedLane[lastTargetLane] < SWITCH_LANE_SPEEDUP_MIN) {
-        bestLaneIdx = lastTargetLane;
-    }
     //
     // Do we have to skip a lane to get to the target?
     // Always skip the middle lane.
     if (std::abs(int32_t(lastTargetLane) - int32_t(bestLaneIdx)) > 1) {
         //
         // If there is a vehicle less than 10m away in the middle stay in the current lane.
-        if (filtered.closestVeh[1].reldist < 10) {
+        if (!filtered.laneIsSafe[1]) {
             bestLaneIdx = lastTargetLane;
         }
     }
+    //
+    // Check if it is even worth switching lanes.
+    if (maxSpeed - tgtSpeedLane[lastTargetLane] < SWITCH_LANE_SPEEDUP_MIN) {
+        bestLaneIdx = lastTargetLane;
+    }
+    std::cout << "(maxspeed, bestidx, lastLaneIdx, lastLaneSpeed) = (" << maxSpeed << ", " <<  bestLaneIdx << ", " << lastTargetLane << ", " << tgtSpeedLane[lastTargetLane] << ")\n";
     auto speed = std::min(tgtSpeedLane[bestLaneIdx], v_tgt);
     TargetState tgt(bestLaneIdx, speed);
     targetLane = bestLaneIdx;
