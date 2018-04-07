@@ -53,12 +53,24 @@ inline std::vector<double> minJerkTraj(double x0, double dx0, double ddx0, doubl
     return ret;
 }
 
+inline double norm(double v1, double v2)
+{
+    return std::sqrt(std::pow(v1, 2) + std::pow(v2, 2));
+}
+
 inline double laneNumToM(uint32_t laneNum)
 {
+    double ret = 0;
     if (laneNum > 2) {
         throw "Outside of the max lanes!";
     }
-    return 2 + laneNum * 4;
+    //
+    // Noticed that if car goes too far to the right it randomly fails.
+    ret = 2 + laneNum * 4;
+    if (laneNum == 2) {
+        ret -= 0.2;
+    }
+    return ret;
 }
 
 inline uint32_t mToLaneNum(double m)
@@ -93,6 +105,15 @@ inline double ddpolyval(std::vector<double> a, double x)
     double ret = 0;
     for (uint32_t idx = 2; idx < a.size(); ++idx) {
         ret += idx * (idx - 1) * a[idx] * pow(x, idx - 2);
+    }
+    return ret;
+}
+
+inline double dddpolyval(std::vector<double> a, double x)
+{
+    double ret = 0;
+    for (uint32_t idx = 3; idx < a.size(); ++idx) {
+        ret += idx * (idx - 1) * (idx - 2) * a[idx] * pow(x, idx - 3);
     }
     return ret;
 }

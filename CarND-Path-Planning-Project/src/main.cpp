@@ -58,7 +58,6 @@ int main()
           Roller roll(state, prev_tf, lastTargetLane, wp);
           lastTargetLane = roll.bestTraj(next_x_vals, next_y_vals, prev_tf);
 
-
           // int startx = state.car_x;
           // int starty = state.car_y;
           // for (int x = 0; x < 5; ++x) {

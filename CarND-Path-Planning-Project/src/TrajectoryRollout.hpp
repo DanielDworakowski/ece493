@@ -8,6 +8,7 @@
 
 #define TIME_HORIZON (2.)
 #define NUM_POINTS (30)
+#define V_MAX (48.)
 #define DT (1. / 50.)
 #define MAX_SPEED_MPS (22.352) // 50 mph.
 #define FOLLOW_DIST (MAX_SPEED_MPS * TIME_HORIZON)
@@ -31,19 +32,30 @@ public:
     double d = 0.;
     double d_d = 0.;
     double d_dd = 0.;
+    double v_t = 0;
+    double a_t = 0;
+    double j_t = 0;
     TrajPointFrenet(std::vector<double> traj_s, std::vector<double> traj_d, double x);
     TrajPointFrenet(double s, double d);
+    bool checkConstraints();
     std::vector<double> toXY(WayPoints wp);
 };
 
 class TrajectoryFrenet {
+private:
+    bool valid = true;
+    std::vector<double> x;
+    std::vector<double> y;
+    double dx = DT;
+    void getXY_local(WayPoints wp);
 public:
     std::vector<TrajPointFrenet> fr;
     TrajectoryFrenet() {};
     TrajectoryFrenet(double s, double d);
-    TrajectoryFrenet(std::vector<double> traj_s, std::vector<double> traj_d, double dt, uint32_t n);
-    void getXY(std::vector<double> & x, std::vector<double> & y, WayPoints wp, VehicleState state);
+    TrajectoryFrenet(std::vector<double> traj_s, std::vector<double> traj_d, double dt, uint32_t n, WayPoints wp);
     uint32_t size() {return fr.size();};
+    void getXY(std::vector<double> & x, std::vector<double> & y);
+    bool checkConstraints() {return valid;};
     void print();
 };
 
@@ -53,6 +65,7 @@ public:
     std::vector<double> x;
     std::vector<double> y;
     Trajectory(VehicleState state, TargetState tgt, TrajectoryFrenet lastTraj, WayPoints wp);
+    bool checkConstraints() {return fr.checkConstraints();};
 };
 
 struct OtherVehicleState {
