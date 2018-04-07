@@ -82,6 +82,11 @@ inline uint32_t mToLaneNum(double m)
     return ret;
 }
 
+inline double MPS2MPH(double x)
+{
+    return x * 2.23694;
+}
+
 inline double polyval(std::vector<double> a, double x)
 {
     double ret = 0;

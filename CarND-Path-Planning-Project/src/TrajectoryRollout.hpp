@@ -6,12 +6,12 @@
 #include "MathHelperTraj.hpp"
 #include "udacityHelpers.hpp"
 
-#define TIME_HORIZON (2.)
+#define TIME_HORIZON (3.)
 #define NUM_POINTS (30)
 #define V_MAX (48.)
 #define DT (1. / 50.)
 #define MAX_SPEED_MPS (22.352) // 50 mph.
-#define FOLLOW_DIST (MAX_SPEED_MPS * TIME_HORIZON)
+#define FOLLOW_DIST (MAX_SPEED_MPS * 2.0)
 #define DEFAULT_TARGET_LANE (1)
 #define SWITCH_LANE_SPEEDUP_MIN (3.)
 
@@ -77,6 +77,7 @@ struct OtherVehicleState {
     double s = 0;
     double d = 0;
     double reldist = 0;
+    double relSpeed = 0;
     OtherVehicleState(std::vector<double>, VehicleState);
     OtherVehicleState() {};
     void print()
@@ -90,6 +91,7 @@ public:
     ObservationFilter(VehicleState state, std::vector<std::vector<double> > others);
     std::vector<OtherVehicleState> result;
     std::vector<uint32_t> LoI;
+    std::vector<bool> laneIsSafe = std::vector<bool>(3,true);
     std::vector<OtherVehicleState> closestVeh = std::vector<OtherVehicleState>(3);
 };
 
@@ -97,6 +99,7 @@ class Roller {
 private:
     uint32_t targetLane = DEFAULT_TARGET_LANE;
     void singleLaneFollower(VehicleState state, TrajectoryFrenet lastTraj, uint32_t lastTargetLane, WayPoints wp);
+    void LoIDriver(VehicleState state, TrajectoryFrenet lastTraj, uint32_t lastTargetLane, WayPoints wp);
     void fastDriver(VehicleState state, TrajectoryFrenet lastTraj, uint32_t lastTargetLane, WayPoints wp);
 public:
     std::vector<Trajectory> trajs;

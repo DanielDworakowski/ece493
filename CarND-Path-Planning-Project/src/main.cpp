@@ -58,24 +58,6 @@ int main()
           Roller roll(state, prev_tf, lastTargetLane, wp);
           lastTargetLane = roll.bestTraj(next_x_vals, next_y_vals, prev_tf);
 
-          // int startx = state.car_x;
-          // int starty = state.car_y;
-          // for (int x = 0; x < 5; ++x) {
-          //   int wpt = NextWaypoint(startx, starty, state.car_yaw, wp.w_x, wp.w_y);
-          //   ++wpt;
-          //   if (wpt >= wp.w_x.size()) {
-          //     wpt = 0;
-          //   }
-          //   startx = wp.w_x[wpt];
-          //   starty = wp.w_y[wpt];
-          //   auto fren = getFrenet(startx, starty, state.car_yaw, wp.w_x, wp.w_y);
-          //   auto fren_s = fren[0];
-          //   auto fren_d = fren[1] + 2;
-          //   auto xy = getXY(fren_s, fren_d, wp.w_s, wp.w_x, wp.w_y);
-          //   next_x_vals.push_back(xy[0]);
-          //   next_y_vals.push_back(xy[1]);
-          // }
-
           // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           msgJson["next_x"] = next_x_vals;
           msgJson["next_y"] = next_y_vals;
