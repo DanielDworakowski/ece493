@@ -289,6 +289,9 @@ void Roller::fastDriver(VehicleState state, TrajectoryFrenet lastTraj, uint32_t 
         speed -= 1;
         tgt = TargetState(bestLaneIdx, speed);
         traj = Trajectory(state, tgt, lastTraj, wp);
+        //////
+        // If this is a lane change and it doesnt find antrhingf make it go straight.  //
+        //////
         if (speed < 2) {
             break;
         }
