@@ -2,6 +2,8 @@
 
 #define DEBUG_LINE std::cout << __LINE__ << std::endl;
 
+// 
+// Wrap the waypoints of the map.
 WayPoints::WayPoints()
 {
   std::string map_file_ = "../data/highway_map.csv";
@@ -40,7 +42,7 @@ WayPoints::WayPoints()
   temp_dx.push_back(temp_dx[0]);
   temp_dy.push_back(temp_dy[0]);
   // 
-  // Create X points out of what we had.
+  // Create generate the spline for the entire map.
   s_x.set_points(temp_s, temp_x);
   s_y.set_points(temp_s, temp_y);
   s_dx.set_points(temp_s, temp_dx);
@@ -48,6 +50,8 @@ WayPoints::WayPoints()
   double cur_s = 0;
   uint32_t npts = NUM_MAP_PTS;
   double ds = max_s / npts;
+  // 
+  // Iterate over the map and generate more data points. 
   for (uint32_t idx = 0; idx < npts; ++idx) {
     w_s.push_back(cur_s);
     w_x.push_back(s_x(cur_s));
@@ -128,7 +132,8 @@ std::vector<double> WayPoints::getFrenet(double x, double y, double theta)
   return {frenet_s,frenet_d};
 
 }
-
+// 
+// Wrap the ego vehicle's state. 
 VehicleState::VehicleState(json j, std::vector<double> px, std::vector<double> py, std::vector<std::vector<double> > sf)
 {
   car_x = j[1]["x"];

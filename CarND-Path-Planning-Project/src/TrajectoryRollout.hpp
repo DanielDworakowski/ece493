@@ -104,7 +104,7 @@ private:
 public:
     std::vector<Trajectory> trajs;
     Roller(VehicleState state, TrajectoryFrenet lastTraj, uint32_t lastTargetLane, WayPoints wp);
-    uint32_t bestTraj(std::vector<double> & x, std::vector<double> & y, TrajectoryFrenet & tf);
+    uint32_t getTrajectory(std::vector<double> & x, std::vector<double> & y, TrajectoryFrenet & tf);
 
 };
 

@@ -29,6 +29,7 @@
 // ddxT - 2*a(3)];
 // a(4:6,1)=pinv(b)*c;
 // http://mplab.ucsd.edu/tutorials/minimumJerk.pdf
+// Generate a trajectory with minimal jerk. 
 inline std::vector<double> minJerkTraj(double x0, double dx0, double ddx0, double xT, double dxT, double ddxT, double T)
 {
     double T2 = std::pow(T,2);
@@ -52,12 +53,14 @@ inline std::vector<double> minJerkTraj(double x0, double dx0, double ddx0, doubl
     std::vector<double> ret(coef.data(), coef.data() + coef.rows() * coef.cols());
     return ret;
 }
-
+// 
+// Total length of two vectors. 
 inline double norm(double v1, double v2)
 {
     return std::sqrt(std::pow(v1, 2) + std::pow(v2, 2));
 }
-
+// 
+// Find what lane we are in. 
 inline double laneNumToM(uint32_t laneNum)
 {
     double ret = 0;
@@ -72,21 +75,21 @@ inline double laneNumToM(uint32_t laneNum)
     }
     return ret;
 }
-
+// 
+// Displacement to a lane number. 
 inline uint32_t mToLaneNum(double m)
 {
-    // if (m < 0 || m > 10) {
-    //     std::cerr << "Measurement outside of highway!\n";
-    // }
     uint32_t ret = std::round(std::abs(m - 2) / 4);
     return ret;
 }
-
+// 
+// Convert to MPH.
 inline double MPS2MPH(double x)
 {
     return x * 2.23694;
 }
-
+// 
+// Evaluate a polynomial.
 inline double polyval(std::vector<double> a, double x)
 {
     double ret = 0;
@@ -95,7 +98,8 @@ inline double polyval(std::vector<double> a, double x)
     }
     return ret;
 }
-
+// 
+// Evaluate the derivative of a polynomial.
 inline double dpolyval(std::vector<double> a, double x)
 {
     double ret = 0;
@@ -104,7 +108,8 @@ inline double dpolyval(std::vector<double> a, double x)
     }
     return ret;
 }
-
+// 
+// Acceleration. 
 inline double ddpolyval(std::vector<double> a, double x)
 {
     double ret = 0;
@@ -113,7 +118,8 @@ inline double ddpolyval(std::vector<double> a, double x)
     }
     return ret;
 }
-
+// 
+// Jerk.
 inline double dddpolyval(std::vector<double> a, double x)
 {
     double ret = 0;
@@ -122,7 +128,8 @@ inline double dddpolyval(std::vector<double> a, double x)
     }
     return ret;
 }
-
+// 
+// Immediate next lanes. 
 inline std::vector<uint32_t> getLoI(uint32_t curlane)
 {
     std::vector<uint32_t> ret;
@@ -145,32 +152,5 @@ inline std::vector<uint32_t> getLoI(uint32_t curlane)
     }
     return ret;
 }
-
-// inline std::vector<uint32_t> getLoI(uint32_t curlane)
-// {
-
-//     std::vector<uint32_t> ret;
-//     ret.push_back(0);
-//     ret.push_back(1);
-//     ret.push_back(2);
-//     // ret.push_back(curlane);
-//     // //
-//     // // Return the lanes that are immediately next to the current.
-//     // switch(curlane) {
-//     //     case 0:
-//     //         ret.push_back(1);
-//     //         break;
-//     //     case 1:
-//     //         ret.push_back(0);
-//     //         ret.push_back(2);
-//     //         break;
-//     //     case 2:
-//     //         ret.push_back(1);
-//     //         break;
-//     //     default:
-//     //         throw "Invalid current lane";
-//     // }
-//     return ret;
-// }
 
 #endif

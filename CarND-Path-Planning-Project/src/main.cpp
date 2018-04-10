@@ -46,6 +46,8 @@ int main()
           // j[1] is the data JSON object
 
           VehicleState state(j, j[1]["previous_path_x"], j[1]["previous_path_y"], j[1]["sensor_fusion"]);
+          
+          // Need to intialize the first trajectory. 
           if (!init) {
             prev_tf = TrajectoryFrenet(state.car_s, state.car_d);
             init = true;
@@ -56,7 +58,7 @@ int main()
           std::vector<double> next_x_vals;
           std::vector<double> next_y_vals;
           Roller roll(state, prev_tf, lastTargetLane, wp);
-          lastTargetLane = roll.bestTraj(next_x_vals, next_y_vals, prev_tf);
+          lastTargetLane = roll.getTrajectory(next_x_vals, next_y_vals, prev_tf);
 
           // TODO: define a path made up of (x,y) points that the car will visit sequentially every .02 seconds
           msgJson["next_x"] = next_x_vals;
