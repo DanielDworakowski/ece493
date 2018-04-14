@@ -36,6 +36,7 @@ int main()
     if (length && length > 2 && data[0] == '4' && data[1] == '2') {
 
       auto s = hasData(data);
+        std::cout << s << std::endl;
 
       if (s != "") {
         json j = json::parse(s);
@@ -65,7 +66,7 @@ int main()
           msgJson["next_y"] = next_y_vals;
           // std::cout << "msg: " << msgJson << std::endl;
           auto msg = "42[\"control\","+ msgJson.dump()+"]";
-
+          std::cout << msg << std::endl;
           //this_thread::sleep_for(chrono::milliseconds(1000));
           ws.send(msg.data(), msg.length(), uWS::OpCode::TEXT);
 

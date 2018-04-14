@@ -11,19 +11,24 @@ TrajPointFrenet::TrajPointFrenet(std::vector<double> traj_s, std::vector<double>
     d = polyval(traj_d, x);
     d_d = dpolyval(traj_d, x);
     d_dd = ddpolyval(traj_d, x);
+    // s = polyval(traj_s, x, 0);
+    // s_d = polyval(traj_s, x, 1);
+    // s_dd = polyval(traj_s, x, 2);
+    // d = polyval(traj_d, x, 0);
+    // d_d = polyval(traj_d, x, 1);
+    // d_dd = polyval(traj_d, x, 2);
     //
     // While these are analytical, they dont match what the simulator thinks they are.
-    //
+    // This is because the simulator uses finite differences. 
     v_t = norm(d_d, s_d);
     a_t = norm(d_dd, s_dd);
-    j_t = norm(dddpolyval(traj_s, x), dddpolyval(traj_d, x));
+    j_t = norm(polyval(traj_s, x, 3), polyval(traj_d, x, 3));
 }
 // 
 // Checks the analytical versions of the constaints, does not necessarily match what happens in the simulator.
 bool TrajPointFrenet::checkConstraints()
 {
     //
-    // SHould be inverted?
     // return !(v_t >= MPH2MPS(V_MAX) || a_t >= 9.9 || j_t >= 9.9);
     return !(a_t >= 9.9);
 }
@@ -134,6 +139,8 @@ void TrajectoryFrenet::getXY(std::vector<double> & x, std::vector<double> & y)
 Trajectory::Trajectory(VehicleState state, TargetState tgt, TrajectoryFrenet lastTraj, WayPoints wp)
 {
     uint32_t nUnused = state.previous_path_x.size();
+    // 
+    // Need a point in the Frenet frame to base our new trajectory.
     TrajPointFrenet basePoint = lastTraj.fr[lastTraj.size() - nUnused - 1];
     double time = TIME_HORIZON;
     uint32_t n = NUM_POINTS;

@@ -99,6 +99,30 @@ inline double polyval(std::vector<double> a, double x)
     return ret;
 }
 // 
+// Evaltuate the nth (derOrder) derivative of a polynomial. 
+inline double polyval(std::vector<double> a, double x, uint32_t derOrder)
+{
+    double ret = 0;
+    // 
+    // Error checking. 
+    if (derOrder > a.size()) {
+        throw "Derivative order > number of parameters!";
+    }
+    // 
+    // Evaluate. 
+    for (uint32_t idx = derOrder; idx < a.size(); ++idx) {
+        double multiplier = 1;
+        // 
+        // Multiplication of the derivative coefficients.
+        for (uint32_t der = idx; idx > (idx - derOrder); --der) {
+            multiplier *= der;
+        }
+        ret += multiplier * a[idx] * pow(x, idx - derOrder);
+    }
+    return ret; 
+}
+
+// 
 // Evaluate the derivative of a polynomial.
 inline double dpolyval(std::vector<double> a, double x)
 {
