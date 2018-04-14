@@ -89,16 +89,6 @@ inline double MPS2MPH(double x)
     return x * 2.23694;
 }
 // 
-// Evaluate a polynomial.
-inline double polyval(std::vector<double> a, double x)
-{
-    double ret = 0;
-    for (uint32_t idx = 0; idx < a.size(); ++idx) {
-        ret += a[idx] * pow(x, idx);
-    }
-    return ret;
-}
-// 
 // Evaltuate the nth (derOrder) derivative of a polynomial. 
 inline double polyval(std::vector<double> a, double x, uint32_t derOrder)
 {
@@ -114,43 +104,12 @@ inline double polyval(std::vector<double> a, double x, uint32_t derOrder)
         double multiplier = 1;
         // 
         // Multiplication of the derivative coefficients.
-        for (uint32_t der = idx; idx > (idx - derOrder); --der) {
+        for (uint32_t der = idx; der > (idx - derOrder); --der) {
             multiplier *= der;
         }
         ret += multiplier * a[idx] * pow(x, idx - derOrder);
     }
     return ret; 
-}
-
-// 
-// Evaluate the derivative of a polynomial.
-inline double dpolyval(std::vector<double> a, double x)
-{
-    double ret = 0;
-    for (uint32_t idx = 1; idx < a.size(); ++idx) {
-        ret += idx * a[idx] * pow(x, idx - 1);
-    }
-    return ret;
-}
-// 
-// Acceleration. 
-inline double ddpolyval(std::vector<double> a, double x)
-{
-    double ret = 0;
-    for (uint32_t idx = 2; idx < a.size(); ++idx) {
-        ret += idx * (idx - 1) * a[idx] * pow(x, idx - 2);
-    }
-    return ret;
-}
-// 
-// Jerk.
-inline double dddpolyval(std::vector<double> a, double x)
-{
-    double ret = 0;
-    for (uint32_t idx = 3; idx < a.size(); ++idx) {
-        ret += idx * (idx - 1) * (idx - 2) * a[idx] * pow(x, idx - 3);
-    }
-    return ret;
 }
 // 
 // Immediate next lanes. 

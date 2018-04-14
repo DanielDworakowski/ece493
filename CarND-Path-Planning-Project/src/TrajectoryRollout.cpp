@@ -5,24 +5,18 @@
 // Calculate a coordinate in the trajectory and the analytical derivative's there.
 TrajPointFrenet::TrajPointFrenet(std::vector<double> traj_s, std::vector<double> traj_d, double x)
 {
-    s = polyval(traj_s, x);
-    s_d = dpolyval(traj_s, x);
-    s_dd = ddpolyval(traj_s, x);
-    d = polyval(traj_d, x);
-    d_d = dpolyval(traj_d, x);
-    d_dd = ddpolyval(traj_d, x);
-    // s = polyval(traj_s, x, 0);
-    // s_d = polyval(traj_s, x, 1);
-    // s_dd = polyval(traj_s, x, 2);
-    // d = polyval(traj_d, x, 0);
-    // d_d = polyval(traj_d, x, 1);
-    // d_dd = polyval(traj_d, x, 2);
+    s = polyval(traj_s, x, 0);
+    s_d = polyval(traj_s, x, 1);
+    s_dd = polyval(traj_s, x, 2);
+    d = polyval(traj_d, x, 0);
+    d_d = polyval(traj_d, x, 1);
+    d_dd = polyval(traj_d, x, 2);
     //
     // While these are analytical, they dont match what the simulator thinks they are.
     // This is because the simulator uses finite differences. 
-    v_t = norm(d_d, s_d);
+    // v_t = norm(d_d, s_d);
     a_t = norm(d_dd, s_dd);
-    j_t = norm(polyval(traj_s, x, 3), polyval(traj_d, x, 3));
+    // j_t = norm(polyval(traj_s, x, 3), polyval(traj_d, x, 3));
 }
 // 
 // Checks the analytical versions of the constaints, does not necessarily match what happens in the simulator.
@@ -138,9 +132,9 @@ void TrajectoryFrenet::getXY(std::vector<double> & x, std::vector<double> & y)
 // Generate a trajectory based on desired properties.
 Trajectory::Trajectory(VehicleState state, TargetState tgt, TrajectoryFrenet lastTraj, WayPoints wp)
 {
-    uint32_t nUnused = state.previous_path_x.size();
     // 
     // Need a point in the Frenet frame to base our new trajectory.
+    uint32_t nUnused = state.previous_path_x.size();
     TrajPointFrenet basePoint = lastTraj.fr[lastTraj.size() - nUnused - 1];
     double time = TIME_HORIZON;
     uint32_t n = NUM_POINTS;
@@ -277,7 +271,7 @@ void Roller::fastDriver(VehicleState state, TrajectoryFrenet lastTraj, uint32_t 
         tgtSpeedLane[lnidx] = unrestricted;
         if (filtered.closestVeh[lnidx].id != -1) {
             // 
-            // What speed would we go if we entered this lane.
+            // What speed would we go if we entered this lane (P control on follow distance).
             tgtSpeedLane[lnidx] = state.car_speed + 0.2 * (filtered.closestVeh[lnidx].reldist - FOLLOW_DIST);
             if (filtered.closestVeh[lnidx].reldist < 5 || !filtered.laneIsSafe[lnidx]) {
                 tgtSpeedLane[lnidx] = -1;
@@ -292,7 +286,6 @@ void Roller::fastDriver(VehicleState state, TrajectoryFrenet lastTraj, uint32_t 
     }
     //
     // Do we have to skip a lane to get to the target?
-    // Always skip the middle lane.
     if (std::abs(int32_t(lastTargetLane) - int32_t(bestLaneIdx)) > 1) {
         //
         // If there is a vehicle less than 10m away in the middle stay in the current lane.
@@ -316,12 +309,13 @@ void Roller::fastDriver(VehicleState state, TrajectoryFrenet lastTraj, uint32_t 
     // Keep generating trajectories if a constraint is violated. 
     // To make this more realistic, would probably want to have a keep going straight fallback. 
     while (!traj.checkConstraints()) {
-        speed -= 1;
+        // 
+        // Instead of just reducing speed can also try differing trajectories. 
+        speed -= 0.25;
         tgt = TargetState(bestLaneIdx, speed);
         traj = Trajectory(state, tgt, lastTraj, wp);
-        //////
-        // If this is a lane change and it doesnt find antrhingf make it go straight.  //
-        //////
+        //
+        // If this is a lane change and it doesnt find antrhingf make it go straight.
         if (speed < 2) {
             break;
         }
