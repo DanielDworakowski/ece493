@@ -8,7 +8,7 @@
 
 #define TIME_HORIZON (3.)
 #define NUM_POINTS (30)
-#define V_MAX (48.)
+#define V_MAX (45.)
 #define DT (1. / 50.)
 #define MAX_SPEED_MPS (22.352) // 50 mph.
 #define FOLLOW_DIST (MAX_SPEED_MPS * 2.0)

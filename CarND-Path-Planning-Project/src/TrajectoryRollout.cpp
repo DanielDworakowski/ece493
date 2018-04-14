@@ -14,7 +14,10 @@ TrajPointFrenet::TrajPointFrenet(std::vector<double> traj_s, std::vector<double>
     //
     // While these are analytical, they dont match what the simulator thinks they are.
     // This is because the simulator uses finite differences. 
-    // v_t = norm(d_d, s_d);
+    v_t = norm(d_d, s_d);
+    // 
+    // Acceleration calculation via finite differences is unstable 
+    // probably due to courseness of the map.
     a_t = norm(d_dd, s_dd);
     // j_t = norm(polyval(traj_s, x, 3), polyval(traj_d, x, 3));
 }
@@ -24,7 +27,8 @@ bool TrajPointFrenet::checkConstraints()
 {
     //
     // return !(v_t >= MPH2MPS(V_MAX) || a_t >= 9.9 || j_t >= 9.9);
-    return !(a_t >= 9.9);
+    return !(v_t >= MPH2MPS(V_MAX) || a_t >= 9.9);
+    // return !(a_t >= 7.); // 7 as a safety margin for estimation error. 
 }
 // 
 // Directly set a point (useful for the startup)
@@ -80,45 +84,6 @@ void TrajectoryFrenet::getXY_local(WayPoints wp)
         std::vector<double> xy = fr[idx].toXY(wp);
         x.push_back(xy[0]);
         y.push_back(xy[1]);
-    }
-    //
-    // Check constraints in the x-y frame.
-    double v_x = 0;
-    double v_y = 0;
-    double v_t = 0;
-    double a_x = 0;
-    double a_y = 0;
-    double a_t = 0;
-    // double j_x = 0;
-    // double j_y = 0;
-    // double j_t = 0;
-    //
-    // Check constraints with finite differences.
-    for (uint32_t i = 3; i < fr.size() - 4; ++i) {
-        // v_x = (-11 * x[i] + 18 * x[i + 1] - 9 * x[i + 2] + 2 * x[i + 3]) / (6*dx);
-        // v_y = (-11 * y[i] + 18 * y[i + 1] - 9 * y[i + 2] + 2 * y[i + 3]) / (6*dx);
-        v_x = (-2*x[i-3]+9*x[i-2]-18*x[i-1]+11*x[i]) / (6*dx);
-        v_y = (-2*y[i-3]+9*y[i-2]-18*y[i-1]+11*y[i]) / (6*dx);
-        v_t = norm(v_x, v_y);
-        // a_x = (11*x[i-1]-20*x[i]+6*x[i+1]+4*x[i+2]-x[i+3]) / (12 * std::pow(dx, 2));
-        // a_y = (11*y[i-1]-20*y[i]+6*y[i+1]+4*y[i+2]-y[i+3]) / (12 * std::pow(dx, 2));
-        // a_x = (10*x[i-1]-15*x[i]-4*x[i+1]+14*x[i+2]-6*x[i+3]+1*x[i+4]) / (12 * std::pow(dx, 2));
-        // a_y = (10*y[i-1]-15*y[i]-4*y[i+1]+14*y[i+2]-6*y[i+3]+1*y[i+4]) / (12 * std::pow(dx, 2));
-        // a_x = (-1 * x[i-3] + 4 * x[i-2] -5 * x[i-1]+2*x[i]) / (std::pow(dx, 2));
-        // a_y = (-1 * y[i-3] + 4 * y[i-2] -5 * y[i-1]+2*y[i]) / (std::pow(dx, 2));
-        // a_t = norm(a_x, a_y);
-        // if (i == 3) {
-        //     PRINT(MPS2MPH(a_x))
-        //     PRINT(MPS2MPH(a_y))
-        //     PRINT(MPS2MPH(a_t))
-        // }
-
-        // j_x = (-x[i] + x[i + 3] + 3 * x[i + 1] - 3 * x[i + 2]) / std::pow(dx, 3);
-        // j_y = (-y[i] + y[i + 3] + 3 * y[i + 1] - 3 * y[i + 2]) / std::pow(dx, 3);
-        // j_t = norm(j_x, j_y);
-        // valid &= (!(v_t >= MPH2MPS(V_MAX) || a_t >= 9.9 || j_t >= 9.9));
-        // valid &= (!(v_t >= MPH2MPS(V_MAX)));
-        valid &= !(v_t >= MPH2MPS(V_MAX));
     }
 }
 // 
